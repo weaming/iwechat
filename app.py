@@ -49,6 +49,10 @@ def wechat():
             else:
                 text = robot(msg.content, msg.source[:10]) #取消息来源前10位，因为不允许特殊符号
             reply = create_reply(text, msg)
+        elif msg.type =='event':
+            if msg.event == 'subscribe':
+                text = '小Q等您很久了，快来调戏我吧！回复【帮助】获取使用指南！'
+                reply = create_reply(text, msg)
         else:
             reply = create_reply('Sorry, can not handle this for now', msg)
         return reply.render()
