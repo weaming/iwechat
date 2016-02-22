@@ -45,11 +45,10 @@ def wechat():
         msg = parse_message(request.data)
         if msg.type == 'text':
             if msg.content.startswith('#'):
-                if msg.content[1:] = '发短信'：
-                    responce = requests.get('http://api.wowapi.org/faduanxin/')
-                    reply = create_reply(responce, msg)
+                if msg.content[1:] == '发短信':
+                    text = requests.get('http://api.wowapi.org/faduanxin/')
                 else:
-                    reply = create_reply('input error', msg)
+                    text = 'input error'
             elif msg.content in ['help', u'帮助']:
                 text = '''功能包括：聊天、笑话、图片、天气、问答、百科、故事、新闻、菜谱、星座、凶吉、成语接龙、快递、飞机、列车、计算
 
