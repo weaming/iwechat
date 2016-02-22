@@ -45,7 +45,17 @@ def wechat():
         msg = parse_message(request.data)
         if msg.type == 'text':
             if msg.content in ['help', u'帮助']:
-                text = '聊天、笑话、图片、天气、问答、百科、故事、新闻、菜谱、星座、凶吉、成语接龙、快递、飞机、列车、计算'
+                text = '''功能包括：聊天、笑话、图片、天气、问答、百科、故事、新闻、菜谱、星座、凶吉、成语接龙、快递、飞机、列车、计算
+
+你可以这样问他：
+明天天气
+查快递
+看新闻
+刘德华是谁
+范冰冰照片
+你是傻逼吗
+...
+随意聊天，不要太拘谨哦！'''
             else:
                 text = robot(msg.content, msg.source[:10]) #取消息来源前10位，因为不允许特殊符号
             reply = create_reply(text, msg)
