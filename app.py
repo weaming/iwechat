@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import requests
 
 from flask import Flask, request, abort, render_template
 from wechatpy import parse_message, create_reply
