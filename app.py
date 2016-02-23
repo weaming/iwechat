@@ -47,7 +47,8 @@ def wechat():
         if msg.type == 'text':
             if msg.content.startswith('#'):
                 if msg.content[1:] == 'send':
-                    text = requests.get('http://api.wowapi.org/faduanxin/')
+                    rt = requests.get('http://api.wowapi.org/faduanxin/')
+                    text = rt.text
                 else:
                     text = 'input error'
             elif msg.content in ['help', u'帮助']:
