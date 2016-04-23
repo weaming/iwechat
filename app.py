@@ -76,6 +76,16 @@ def wechatsdk():
 你是傻逼吗
 ...
 随意聊天，不要太拘谨哦！'''
+            elif content.startswith('http'):
+                li = []
+                di = {
+                    'title': content.split('\n')[1],
+                    'picurl': 'http://bitsflow.org/favicon.png',
+                    'url': content.split('\n')[0],
+                }
+                li.append(di)
+                xml = wechat.response_news(li)
+                return xml
             else:
                 # text = robot(content, common_source[:10]) #取消息来源前10位，因为不允许特殊符号
 
@@ -91,7 +101,6 @@ def wechatsdk():
                     for i in tl['list']:
                         di = {
                             'title': i['article'],
-                            'description': i['article'],
                             'picurl': request.url_root + 'static/netease_news.gif',
                             'url': i['detailurl'],
                         }
