@@ -6,9 +6,12 @@ import requests as rq
 
 token_key = 'e8151bef6a9f9deaf641a7c71b5cb0bc'
 
-def robot(info=u'你好', userid='123'):
+def robot(info=u'你好', userid='123', raw=False):
     rt = rq.get('http://www.tuling123.com/openapi/api?key=' + token_key + '&info=' + info + '&userid=' + userid)
+    rt = rt.replace('<br>','\n')
     tl = json.loads(rt.text)
+    if raw: return tl
+
     # 判断消息类型
     if tl['code']==100000: #文字
         text = tl['text']
@@ -41,7 +44,6 @@ def robot(info=u'你好', userid='123'):
     else:
         text = 'error'
 
-    text = text.replace('<br>','\n')
     def myfilter(text):
         if text.endswith('\n'):
             text = text[:-2]

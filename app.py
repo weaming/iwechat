@@ -20,8 +20,6 @@ from wechatpy.exceptions import (
 app = Flask(__name__)
 
 
-
-
 @app.route('/')
 def index():
     host = request.url_root
@@ -78,7 +76,52 @@ def wechatsdk():
 ...
 随意聊天，不要太拘谨哦！'''
             else:
-                text = robot(content, common_source[:10]) #取消息来源前10位，因为不允许特殊符号
+                # text = robot(content, common_source[:10]) #取消息来源前10位，因为不允许特殊符号
+
+                tl = robot(content, common_source[:10], raw=True) #取消息来源前10位，因为不允许特殊符号，返回原始json的dict
+                # 判断消息类型
+                if tl['code']==100000: #文字
+                    text = tl['text']
+                elif tl['code']==200000: #链接
+                    text = tl['text']+'\n'+tl['url']
+                elif tl['code']==302000: #新闻
+                    text = tl['text']+'\n\n'
+                    lenth = len(tl['list'])
+                    li = []
+                    for i in tul['list']:
+                        di = {
+                            'title': i['article'],
+                            'description': i['article'],
+                            'picurl': i['icon'],
+                            'url': i['detailurl'],
+                        }
+                        li.append(di)
+                    xml = wechat.response_news(li)
+                    return xml
+
+                    for index,i in enumerate(tl['list']):
+                        text = text + i['article'] + ' [' + i['source'] + ']\n' + i['detailurl']
+                        if index < lenth-1:
+                            text += '\n\n'
+                elif tl['code']==308000: #菜谱
+                    text = tl['text']+'\n\n'
+                    max_item = 5
+                    for index,i in enumerate(tl['list']):
+                        if index < max_item:
+                            text = text + i['name'] + ':\n' + i['info'] + '\n' + i['detailurl']
+                            if index < max_item-1:
+                                text += '\n\n'
+                elif tl['code']==305000: #列车
+                    text = tl['text']+'\n\n'
+                    lenth = len(tl['list'])
+                    for index,i in enumerate(tl['list']):
+                        text = text + i['trainnum'] + ':\n' + i['start'] + '-->' + i['terminal'] + '\n' + i['starttime'] + '--' + i['endtime']
+                        if i['detailurl']:
+                            text += '\n' + i['detailurl']
+                        if index < lenth-1:
+                            text += '\n\n'
+                else:
+                    text = 'error'
 
             xml = wechat.response_text(content=text)
             return xml
