@@ -30,6 +30,7 @@ def index():
 
 @app.route('/wechatsdk', methods=['GET', 'POST'])
 def wechatsdk():
+    DEBUG = True
     conf = WechatConf(
         token='weaming',
         appid='wx9600acf68d695dee',
@@ -42,13 +43,12 @@ def wechatsdk():
     signature = request.args.get('signature', '')
     timestamp = request.args.get('timestamp', '')
     nonce = request.args.get('nonce', '')
+    echostr = request.args.get('echostr', '')
 
-    if wechat.check_signature(signature, timestamp, nonce):
-        print 'Accept'
-    else:
-        print 'Wrong'
-
-
+    if request.method == 'GET':
+        if DEBUG or wechat.check_signature(signature, timestamp, nonce):
+            echo_str = request.args.get('echostr', '')
+            return echo_str
 
 @app.route('/wechat', methods=['GET', 'POST'])
 def wechat():
