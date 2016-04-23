@@ -8,6 +8,7 @@ from tuling123 import robot
 from wechat_sdk import WechatConf
 from wechat_sdk import WechatBasic
 from wechat_sdk.exceptions import ParseError
+from wechat_sdk.messages import *
 
 from wechatpy import parse_message, create_reply
 from wechatpy.utils import check_signature
@@ -80,7 +81,7 @@ def wechatsdk():
 ...
 随意聊天，不要太拘谨哦！'''
             else:
-                text = robot(content, msg.source[:10]) #取消息来源前10位，因为不允许特殊符号
+                text = robot(content, common_source[:10]) #取消息来源前10位，因为不允许特殊符号
 
             xml = wechat.response_text(content=text)
             return xml
