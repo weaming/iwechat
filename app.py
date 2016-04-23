@@ -53,7 +53,7 @@ def wechatsdk():
 
     if request.method == 'POST':
         try:
-            wechat.parse_data(body_text)
+            wechat.parse_data(request.data)
         except ParseError:
             print 'Invalid Body Text'
 
@@ -209,4 +209,4 @@ def wechat():
 
 
 if __name__ == '__main__':
-    app.run('127.0.0.1', 9003, debug=True)
+    app.run('127.0.0.1', 8001, debug=True)
