@@ -67,6 +67,7 @@ def wechatsdk():
                 text = '''功能包括：聊天、笑话、图片、天气、问答、百科、故事、新闻、菜谱、星座、凶吉、成语接龙、快递、飞机、列车、计算
 
 你可以这样问他：
+讲笑话
 明天天气
 查快递
 看新闻
@@ -86,13 +87,12 @@ def wechatsdk():
                     text = tl['text']+'\n'+tl['url']
                 elif tl['code']==302000: #新闻
                     text = tl['text']+'\n\n'
-                    lenth = len(tl['list'])
                     li = []
-                    for i in tul['list']:
+                    for i in tl['list']:
                         di = {
                             'title': i['article'],
                             'description': i['article'],
-                            'picurl': i['icon'],
+                            'picurl': request.url_root + 'static/netease_news.gif',
                             'url': i['detailurl'],
                         }
                         li.append(di)
@@ -154,7 +154,21 @@ def wechatsdk():
                 key = wechat.message.key                        # 对应于 XML 中的 EventKey (普通关注事件时此值为 None)
                 ticket = wechat.message.ticket                  # 对应于 XML 中的 Ticket (普通关注事件时此值为 None)
 
-                text = '小Q等您很久了，快来调戏我吧！回复【帮助】获取使用指南！'
+                text = '''小Q等您很久了，快来调戏我吧！
+
+功能包括：聊天、笑话、图片、天气、问答、百科、故事、新闻、菜谱、星座、凶吉、成语接龙、快递、飞机、列车、计算
+
+你可以这样问他：
+讲笑话
+明天天气
+查快递
+看新闻
+刘德华是谁
+范冰冰照片
+你是傻逼吗
+...
+
+回复【帮助】或【help】获取使用指南！'''
                 xml = wechat.response_text(content=text)
                 return xml
 
