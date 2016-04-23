@@ -19,10 +19,7 @@ from wechatpy.exceptions import (
 
 app = Flask(__name__)
 
-# set token or get from environments
-TOKEN = os.getenv('WECHAT_TOKEN', 'liaojuan520')
-AES_KEY = os.getenv('WECHAT_AES_KEY', '')
-APPID = os.getenv('WECHAT_APPID', '')
+
 
 
 @app.route('/')
@@ -140,6 +137,11 @@ def wechatsdk():
 
 @app.route('/wechat', methods=['GET', 'POST'])
 def wechat():
+    # set token or get from environments
+    TOKEN = os.getenv('WECHAT_TOKEN', 'liaojuan520')
+    AES_KEY = os.getenv('WECHAT_AES_KEY', '')
+    APPID = os.getenv('WECHAT_APPID', '')
+
     signature = request.args.get('signature', '')
     timestamp = request.args.get('timestamp', '')
     nonce = request.args.get('nonce', '')
