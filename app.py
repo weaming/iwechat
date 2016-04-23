@@ -3,26 +3,51 @@ import os
 import requests
 
 from flask import Flask, request, abort, render_template
+from tuling123 import robot
+
+from wechat_sdk import WechatConf
+from wechat_sdk import WechatBasic
+
 from wechatpy import parse_message, create_reply
 from wechatpy.utils import check_signature
 from wechatpy.exceptions import (
     InvalidSignatureException,
     InvalidAppIdException,
 )
-from tuling123 import robot
+
+app = Flask(__name__)
 
 # set token or get from environments
 TOKEN = os.getenv('WECHAT_TOKEN', 'liaojuan520')
 AES_KEY = os.getenv('WECHAT_AES_KEY', '')
 APPID = os.getenv('WECHAT_APPID', '')
 
-app = Flask(__name__)
-
 
 @app.route('/')
 def index():
     host = request.url_root
     return render_template('index.html', host=host)
+
+@app.route('/wechatsdk', methods=['GET', 'POST'])
+def wechatsdk():
+    conf = WechatConf(
+        token='weaming',
+        appid='wx9600acf68d695dee',
+        appsecret='2b65f098c41a17903280db9fca15b814',
+        encrypt_mode='compatible',  # 可选项：normal/compatible/safe，分别对应于 明文/兼容/安全 模式
+        encoding_aes_key='zUHZhry09mQb8MRj5AeND9g4lP8DIIoNTnNFTvPY9s0'  # 如果传入此值则必须保证同时传入 token, appid
+    )
+    wechat = WechatBasic(conf=conf)
+
+    signature = request.args.get('signature', '')
+    timestamp = request.args.get('timestamp', '')
+    nonce = request.args.get('nonce', '')
+
+    if wechat.check_signature(signature, timestamp, nonce):
+        print 'Accept'
+    else:
+        print 'Wrong'
+
 
 
 @app.route('/wechat', methods=['GET', 'POST'])
