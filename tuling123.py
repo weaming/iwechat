@@ -42,4 +42,11 @@ def robot(info=u'你好', userid='123'):
         text = 'error'
 
     text = text.replace('<br>','\n')
+    def myfilter(text):
+        if text.endswith('\n'):
+            text = text[:-2]
+            myfilter(text)
+        else:
+            return text
+    text = myfilter(text)
     return text
