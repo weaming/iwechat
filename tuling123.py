@@ -8,7 +8,7 @@ token_key = 'e8151bef6a9f9deaf641a7c71b5cb0bc'
 
 def robot(info=u'你好', userid='123', raw=False):
     rt = rq.get('http://www.tuling123.com/openapi/api?key=' + token_key + '&info=' + info + '&userid=' + userid)
-    rt_text = rt.text.replace('<br>','\n')
+    rt_text = rt.text.replace('<br>','\\n')
     tl = json.loads(rt_text)
     if raw: return tl
 
