@@ -107,11 +107,6 @@ def wechatsdk():
                         li.append(di)
                     xml = wechat.response_news(li)
                     return xml
-
-                    for index,i in enumerate(tl['list']):
-                        text = text + i['article'] + ' [' + i['source'] + ']\n' + i['detailurl']
-                        if index < lenth-1:
-                            text += '\n\n'
                 elif tl['code']==308000: #菜谱
                     text = tl['text']+'\n\n'
                     max_item = 5
@@ -132,6 +127,13 @@ def wechatsdk():
                 else:
                     text = 'error'
 
+            def myfilter(text):
+                if text.endswith('\n'):
+                    text = text[:-2]
+                    myfilter(text)
+                else:
+                    return text
+            text = myfilter(text)
             xml = wechat.response_text(content=text)
             return xml
 
@@ -175,9 +177,7 @@ def wechatsdk():
 刘德华是谁
 范冰冰照片
 你是傻逼吗
-...
-
-回复【帮助】或【help】获取使用指南！'''
+...'''
                 xml = wechat.response_text(content=text)
                 return xml
 
