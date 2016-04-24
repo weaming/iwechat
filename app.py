@@ -128,7 +128,7 @@ def wechatsdk():
                     text = 'error'
 
             def myfilter(text):
-                if text.endswith('\n'):
+                if text.endswith('\\n'):
                     text = text[:-2]
                     myfilter(text)
                 else:
