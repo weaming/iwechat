@@ -127,14 +127,7 @@ def wechatsdk():
                 else:
                     text = 'error'
 
-            def myfilter(text):
-                if text.endswith('\\n'):
-                    text = text[:-2]
-                    myfilter(text)
-                else:
-                    return text
-            text = myfilter(text)
-            xml = wechat.response_text(content=text)
+            xml = wechat.response_text(content=text.rstrip())
             return xml
 
         if isinstance(wechat.message, ImageMessage):

@@ -44,11 +44,5 @@ def robot(info=u'你好', userid='123', raw=False):
     else:
         text = 'error'
 
-    def myfilter(text):
-        if text.endswith('\n'):
-            text = text[:-2]
-            myfilter(text)
-        else:
-            return text
-    text = myfilter(text)
+    text = myfilter(text.rstrip())
     return text
