@@ -133,7 +133,7 @@ def wechat():
                         except:
                             text = '请发送您的地理位置！'
                     else:
-                        text0 = '已通过高德地图API为您查找到信息：\n\n'
+                        text0 = '已通过高德地图API为您查找到 深圳 市内所有相关信息：\n\n'
                         text = amap_text_query(keywords, text0)
                 else:
                     # text = robot(content, msg.source[:10]) #取消息来源前10位，因为不允许特殊符号
