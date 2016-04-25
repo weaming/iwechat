@@ -67,8 +67,10 @@ def amap_text_query(keywords, text, loc='深圳'):
     for index,i in enumerate(js['pois']):
         if index < limit:
             info += str(index+1) + '.'
-            info += i['name'].encode('utf-8') + '\n'
-            info += i['address'].encode('utf-8') + '\n'
+            if type(i['name']) in [str, unicode]:
+                info += i['name'].encode('utf-8') + '\n'
+            if type(i['address']) in [str, unicode]:
+                info += i['address'].encode('utf-8') + '\n'
             if type(i['tel']) in [str, unicode]:
                 info += i['tel'].encode('utf-8') + '\n'
             info += '-' * 40 + '\n'
