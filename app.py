@@ -61,7 +61,8 @@ def amap_text_query(keywords, text, loc='深圳'):
             info += str(index+1) + '.'
             info += i['name'].encode('utf-8') + '\n'
             info += i['address'].encode('utf-8') + '\n'
-            info += i['tel'].encode('utf-8') + '\n'
+            if type(i['tel']) in [str, unicode]:
+                info += i['tel'].encode('utf-8') + '\n'
             info += '-' * 40 + '\n'
     text += info
     return text
@@ -112,11 +113,28 @@ def wechat():
                 elif content.startswith(u'查'):
                     keywords = content[1:].encode('utf-8')
                     if '附近' in keywords or '周边' in keywords or '周围' in keywords:
-                        keyword_cache[msg.source] = (keywords, time.time())
-                        text = '请发送您的地理位置！'
+                        try:
+                            tmp = keyword_cache[msg.source]
+                        except:
+                            tmp = keyword_cache[msg.source] = {}
+                            
+                        tmp['keywords'] = keywords
+                        tmp['ktime'] = time.time()
+
+                        try:
+                            tmp = keyword_cache[msg.source]
+                            text0 = '已根据您历史位置通过高德地图API找到如下信息：\n\n'
+                            if time.time() - tmp['ltime'] < 60 * 15:
+                                addr_street = tmp['street']
+                                addr_city = tmp['city']
+                                text = amap_text_query(addr_street + keywords, text0, addr_city)
+                            else:
+                                text = '请重新发送您的地理位置！'
+                        except:
+                            text = '请发送您的地理位置！'
                     else:
-                        text = '已通过高德地图API为您查找到信息：\n\n'
-                        text = amap_text_query(keywords, text)
+                        text0 = '已通过高德地图API为您查找到信息：\n\n'
+                        text = amap_text_query(keywords, text0)
                 else:
                     # text = robot(content, msg.source[:10]) #取消息来源前10位，因为不允许特殊符号
 
@@ -163,8 +181,8 @@ def wechat():
             reply = TextReply(content=text, message=msg)
         elif msg.type == 'event':
             if msg.event == 'subscribe':
-                text = '小Q等您很久了，快来调戏我吧！回复【帮助】获取使用指南！'
-                reply = create_reply(text, msg)
+                text0 = '小Q等您很久了，快来调戏我吧！回复【帮助】获取使用指南！'
+                reply = create_reply(text0, msg)
         elif msg.type == 'location':
             locate = [msg.location_y, msg.location_x, msg.scale] # 经度，纬度，缩放
             amap_regeo_api = 'http://restapi.amap.com/v3/geocode/regeo?'
@@ -185,14 +203,16 @@ def wechat():
                 addr_number = js['regeocode']['addressComponent']['streetNumber']['number'].encode('utf-8')
                 addr_city = js['regeocode']['addressComponent']['city'].encode('utf-8')
 
-
                 try:
                     tmp = keyword_cache[msg.source]
+                    tmp['street'] = addr_street
+                    tmp['city'] = addr_city
+                    tmp['ltime'] = time.time()
                 except:
                     tmp = None
-                if tmp and time.time() - tmp[1] < 60 * 60:
-                    text0 = '已通过高德地图API，并根据您位置找到如下信息：\n'
-                    text = amap_text_query(addr_street + keyword_cache[msg.source][0], text0, addr_city)
+                if tmp and time.time() - tmp['ktime'] < 60 * 60:
+                    text0 = '已根据您位置通过高德地图API找到如下信息：\n\n'
+                    text = amap_text_query(addr_street + keyword_cache[msg.source]['keywords'], text0, addr_city)
                 else:
                     text = ','.join([addr_full, addr_street, addr_number])
             else:
