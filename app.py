@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
+import urllib
+import json
 import requests
 
 from flask import Flask, request, abort, render_template
@@ -29,6 +31,8 @@ TOKEN = 'weaming'
 AES_KEY = 'zUHZhry09mQb8MRj5AeND9g4lP8DIIoNTnNFTvPY9s0'
 APPID = 'wx9600acf68d695dee'
 APPSECRET = '2b65f098c41a17903280db9fca15b814'
+
+AMAP_KEY = '53582398c59bb80636f4070760d9f8c0'
 
 @app.route('/')
 def index():
@@ -81,10 +85,29 @@ def wechat():
                     text = default_text
                 elif content.startswith(u'查'):
                     text = '已通过高德地图API为您查找到信息：\n\n'
+                    amap_search_api = 'http://restapi.amap.com/v3/place/text?key=' + AMAP_KEY + '&'
+                    data = urllib.urlencode({
+                        'city': '深圳',
+                        'keywords': content[1:].encode('utf-8'),
+                    })
+                    rt = requests.get(amap_search_api + data)
+                    rt_text = rt.text.encode('utf-8')
+                    js = json.loads(rt_text)
+
+                    info = ''
+                    limit = 10
+                    for index,i in enumerate(js['pois']):
+                        if index < limit:
+                            info += str(index+1) + '.'
+                            info += i['name'].encode('utf-8') + '\n'
+                            info += i['address'].encode('utf-8') + '\n'
+                            info += i['tel'].encode('utf-8') + '\n'
+                            info += '-' * 40 + '\n'
+                    text += info
                 else:
                     # text = robot(content, msg.source[:10]) #取消息来源前10位，因为不允许特殊符号
 
-                    tl = robot(content, msg.source[:10], raw=True) #取消息来源前10位，因为不允许特殊符号，返回原始json的dict
+                    tl = robot(content, msg.source[:10], raw=True)
                     # 判断消息类型
                     if tl['code']==100000: #文字
                         text = tl['text']
@@ -101,6 +124,7 @@ def wechat():
                             }
                             li.append(di)
                         reply = ArticlesReply(message=msg, articles=li)
+                        return reply.render()
 
                     elif tl['code']==308000: #菜谱
                         text = tl['text']+'\n\n'
@@ -122,7 +146,7 @@ def wechat():
                     else:
                         text = 'error'
 
-            # reply = create_reply(text, msg)
+            text = text.strip()
             reply = TextReply(content=text, message=msg)
         elif msg.type =='event':
             if msg.event == 'subscribe':
