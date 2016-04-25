@@ -56,7 +56,7 @@ def wechat():
         return echo_str
 
     # POST request
-    if encrypt_type == 'raw':
+    if encrypt_type != 'aes':
         # plaintext mode
         msg = parse_message(xml)
         # id  消息 id, 64 位整型。
@@ -75,7 +75,7 @@ def wechat():
             elif msg.content in ['help', u'帮助']:
                 text = default_text
             else:
-                content = wechat.message.content                   # 对应于 XML 中的 Content
+                content = msg.content                   # 对应于 XML 中的 Content
 
                 if content in ['help', u'帮助']:
                     text = default_text
@@ -133,7 +133,7 @@ def wechat():
         return reply.render()
     else:
         # encryption mode
-        crypto = WeChatCrypto(token, encoding_aes_key, appid)
+        crypto = WeChatCrypto(TOKEN, AES_KEY, APPID)
         try:
             decrypted_xml = crypto.decrypt_message(xml, msg_signature, timestamp, nonce)
         except (InvalidAppIdException, InvalidSignatureException):
