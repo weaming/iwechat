@@ -2,6 +2,7 @@
 import os
 import urllib
 import json
+import time
 import requests
 
 from flask import Flask, request, abort, render_template
@@ -12,6 +13,7 @@ from wechatpy.utils import check_signature
 from wechatpy.crypto import WeChatCrypto
 from wechatpy.exceptions import InvalidSignatureException, InvalidAppIdException
 from wechatpy.replies import *
+from wechatpy.fields import *
 
 app = Flask(__name__)
 
@@ -34,14 +36,38 @@ APPSECRET = '2b65f098c41a17903280db9fca15b814'
 
 AMAP_KEY = '53582398c59bb80636f4070760d9f8c0'
 
+keyword_cache = {}
+
 @app.route('/')
 def index():
     host = request.url_root
     return render_template('index.html', host=host)
 
+def amap_text_query(keywords, text, loc='深圳'):
+    amap_search_api = 'http://restapi.amap.com/v3/place/text?'
+    data = urllib.urlencode({
+        'key': AMAP_KEY,
+        'city': loc,
+        'keywords': keywords,
+    })
+    rt = requests.get(amap_search_api + data)
+    rt_text = rt.text.encode('utf-8')
+    js = json.loads(rt_text)
+
+    info = ''
+    limit = 10
+    for index,i in enumerate(js['pois']):
+        if index < limit:
+            info += str(index+1) + '.'
+            info += i['name'].encode('utf-8') + '\n'
+            info += i['address'].encode('utf-8') + '\n'
+            info += i['tel'].encode('utf-8') + '\n'
+            info += '-' * 40 + '\n'
+    text += info
+    return text
+
 @app.route('/wechat', methods=['GET', 'POST'])
 def wechat():
-
 
     signature = request.args.get('signature', '')
     timestamp = request.args.get('timestamp', '')
@@ -84,26 +110,13 @@ def wechat():
                 if content in ['help', u'帮助']:
                     text = default_text
                 elif content.startswith(u'查'):
-                    text = '已通过高德地图API为您查找到信息：\n\n'
-                    amap_search_api = 'http://restapi.amap.com/v3/place/text?key=' + AMAP_KEY + '&'
-                    data = urllib.urlencode({
-                        'city': '深圳',
-                        'keywords': content[1:].encode('utf-8'),
-                    })
-                    rt = requests.get(amap_search_api + data)
-                    rt_text = rt.text.encode('utf-8')
-                    js = json.loads(rt_text)
-
-                    info = ''
-                    limit = 10
-                    for index,i in enumerate(js['pois']):
-                        if index < limit:
-                            info += str(index+1) + '.'
-                            info += i['name'].encode('utf-8') + '\n'
-                            info += i['address'].encode('utf-8') + '\n'
-                            info += i['tel'].encode('utf-8') + '\n'
-                            info += '-' * 40 + '\n'
-                    text += info
+                    keywords = content[1:].encode('utf-8')
+                    if '附近' in keywords or '周边' in keywords or '周围' in keywords:
+                        keyword_cache[msg.source] = (keywords, time.time())
+                        text = '请发送您的地理位置！'
+                    else:
+                        text = '已通过高德地图API为您查找到信息：\n\n'
+                        text = amap_text_query(keywords, text)
                 else:
                     # text = robot(content, msg.source[:10]) #取消息来源前10位，因为不允许特殊符号
 
@@ -148,10 +161,45 @@ def wechat():
 
             text = text.strip()
             reply = TextReply(content=text, message=msg)
-        elif msg.type =='event':
+        elif msg.type == 'event':
             if msg.event == 'subscribe':
                 text = '小Q等您很久了，快来调戏我吧！回复【帮助】获取使用指南！'
                 reply = create_reply(text, msg)
+        elif msg.type == 'location':
+            locate = [msg.location_y, msg.location_x, msg.scale] # 经度，纬度，缩放
+            amap_regeo_api = 'http://restapi.amap.com/v3/geocode/regeo?'
+            data = urllib.urlencode({
+                'key': AMAP_KEY,
+                'location': ','.join(locate[:2]),
+                'radius': 2000,
+                'homeorcorp': 1,
+            })
+            url = amap_regeo_api + data
+            rt = requests.get(url)
+            if rt.status_code == 200:
+                rt_text = rt.text.encode('utf-8')
+                js = json.loads(rt_text)
+
+                addr_full = js['regeocode']['formatted_address'].encode('utf-8')
+                addr_street = js['regeocode']['addressComponent']['streetNumber']['street'].encode('utf-8')
+                addr_number = js['regeocode']['addressComponent']['streetNumber']['number'].encode('utf-8')
+                addr_city = js['regeocode']['addressComponent']['city'].encode('utf-8')
+
+
+                try:
+                    tmp = keyword_cache[msg.source]
+                except:
+                    tmp = None
+                if tmp and time.time() - tmp[1] < 60 * 60:
+                    text0 = '已通过高德地图API，并根据您位置找到如下信息：\n'
+                    text = amap_text_query(addr_street + keyword_cache[msg.source][0], text0, addr_city)
+                else:
+                    text = ','.join([addr_full, addr_street, addr_number])
+            else:
+                text = ', '.join(locate)
+
+            text = text.strip()
+            reply = TextReply(content=text, message=msg)
         else:
             reply = create_reply('Sorry, can not handle this for now', msg)
         return reply.render()
