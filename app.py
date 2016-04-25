@@ -7,10 +7,8 @@ from tuling123 import robot
 
 from wechatpy import parse_message, create_reply
 from wechatpy.utils import check_signature
-from wechatpy.exceptions import (
-    InvalidSignatureException,
-    InvalidAppIdException,
-)
+from wechatpy.crypto import WeChatCrypto
+from wechatpy.exceptions import InvalidSignatureException, InvalidAppIdException
 from wechatpy.replies import *
 
 app = Flask(__name__)
@@ -27,6 +25,10 @@ default_text = '''功能包括：聊天、笑话、图片、天气、问答、�
 你是傻逼吗
 ...'''
 
+TOKEN = 'weaming'
+AES_KEY = 'zUHZhry09mQb8MRj5AeND9g4lP8DIIoNTnNFTvPY9s0'
+APPID = 'wx9600acf68d695dee'
+APPSECRET = '2b65f098c41a17903280db9fca15b814'
 
 @app.route('/')
 def index():
@@ -35,16 +37,14 @@ def index():
 
 @app.route('/wechat', methods=['GET', 'POST'])
 def wechat():
-    # set token or get from environments
-    TOKEN = os.getenv('WECHAT_TOKEN', 'weaming')
-    AES_KEY = os.getenv('WECHAT_AES_KEY', '')
-    APPID = os.getenv('WECHAT_APPID', '')
+
 
     signature = request.args.get('signature', '')
     timestamp = request.args.get('timestamp', '')
     nonce = request.args.get('nonce', '')
     encrypt_type = request.args.get('encrypt_type', 'raw')
     msg_signature = request.args.get('msg_signature', '')
+    xml = request.data
 
     # 验证
     try:
@@ -58,7 +58,7 @@ def wechat():
     # POST request
     if encrypt_type == 'raw':
         # plaintext mode
-        msg = parse_message(request.data)
+        msg = parse_message(xml)
         # id  消息 id, 64 位整型。
         # source  消息的来源用户，即发送消息的用户。
         # target  消息的目标用户。
@@ -133,25 +133,18 @@ def wechat():
         return reply.render()
     else:
         # encryption mode
-        from wechatpy.crypto import WeChatCrypto
-
-        crypto = WeChatCrypto(TOKEN, AES_KEY, APPID)
+        crypto = WeChatCrypto(token, encoding_aes_key, appid)
         try:
-            msg = crypto.decrypt_message(
-                request.data,
-                msg_signature,
-                timestamp,
-                nonce
-            )
-        except (InvalidSignatureException, InvalidAppIdException):
+            decrypted_xml = crypto.decrypt_message(xml, msg_signature, timestamp, nonce)
+        except (InvalidAppIdException, InvalidSignatureException):
             abort(403)
+        msg = parse_message(decrypted_xml)
+
+        if msg.type == 'text':
+            reply = create_reply(msg.content, msg)
         else:
-            msg = parse_message(msg)
-            if msg.type == 'text':
-                reply = create_reply(msg.content, msg)
-            else:
-                reply = create_reply('Sorry, can not handle this for now', msg)
-            return crypto.encrypt_message(reply.render(), nonce, timestamp)
+            reply = create_reply('Sorry, can not handle this for now', msg)
+        return crypto.encrypt_message(reply.render(), nonce, timestamp)
 
 
 if __name__ == '__main__':
