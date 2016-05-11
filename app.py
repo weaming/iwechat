@@ -77,6 +77,12 @@ def amap_text_query(keywords, text, loc='深圳'):
     text += info
     return text
 
+# 小黄鸡
+def chat_xhj(txt):
+    url = 'http://www.xiaodoubi.com/simsimiapi.php?msg='
+    rt = requests.get(url + txt).text
+    return rt
+
 @app.route('/wechat', methods=['GET', 'POST'])
 def wechat():
 
@@ -118,16 +124,24 @@ def wechat():
             else:
                 content = msg.content                   # 对应于 XML 中的 Content
 
-                if content in ['help', u'帮助']:
-                    text = default_text
+                try:
+                    tmp = keyword_cache[msg.source]
+                except:
+                    tmp = keyword_cache[msg.source] = {}
+                chicken_flag = tmp.get('xiaohuangji', False)
+
+                if u'小黄鸡' in content:
+                    text = '已进入小黄鸡聊天模式'
+                    tmp['xiaohuangji'] = True
+                elif u'退出' in content:
+                    if chicken_flag:
+                        text = '已退出小黄鸡聊天模式...'
+                        tmp['xiaohuangji'] = False
+                    else:
+                        text = '发送“小黄鸡”来和TA对话！'
                 elif content.startswith(u'查'):
                     keywords = content[1:].encode('utf-8')
                     if '附近' in keywords or '周边' in keywords or '周围' in keywords:
-                        try:
-                            tmp = keyword_cache[msg.source]
-                        except:
-                            tmp = keyword_cache[msg.source] = {}
-                            
                         tmp['keywords'] = keywords
                         tmp['ktime'] = time.time()
 
@@ -145,6 +159,8 @@ def wechat():
                     else:
                         text0 = '已通过高德地图API为您查找到 深圳 市内所有相关信息：\n\n'
                         text = amap_text_query(keywords, text0)
+                elif chicken_flag:
+                    text = chat_xhj(content)
                 else:
                     # text = robot(content, msg.source[:10]) #取消息来源前10位，因为不允许特殊符号
 
