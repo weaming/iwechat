@@ -41,7 +41,6 @@ def log(msg, rv=None):
     from_user_name = msg['FromUserName']
     to_user_name = msg['ToUserName']
 
-    _user = msg['RecommendInfo']
     is_group = is_group_msg(from_user_name)
 
     my_display_name = itchat.search_friends()['NickName']
@@ -50,7 +49,6 @@ def log(msg, rv=None):
     # User
     if is_group:
         user_text += u'Actual: %s [%s]' % (msg['ActualNickName'], msg['ActualUserName'])
-        user_text += ' ' + u'男' if _user['Sex'] == 0 else u'女'
         msgs.append(user_text)
 
     # From
@@ -69,10 +67,12 @@ def log(msg, rv=None):
         uin = user['Uin']
         tmp = u'From: %s [%s]' % (remark_name or user_name, uin)
     msgs.append(tmp)
-    msgs.append(u'[*] %s' % text)
 
     # TO
     msgs.append(u'To: %s [%s]' % (my_display_name, to_user_name))
+
+    # detail
+    msgs.append(u'[*] %s' % text)
     if rv:
         msgs.append(u'[+] %s' % rv)
 
@@ -96,8 +96,12 @@ def get_group(*args, **kwargs):
 
 
 def is_group_msg(from_user_name):
+    if type(from_user_name) is dict:
+        from_user_name = from_user_name['FromUserName']
     return from_user_name.startswith('@@')
 
 
 def is_friends_msg(from_user_name):
+    if type(from_user_name) is dict:
+        from_user_name = from_user_name['FromUserName']
     return from_user_name[0] == '@' and from_user_name[1] != '@'
