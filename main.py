@@ -1,17 +1,22 @@
 # coding: utf-8
 
 import sys
-import itchat
-from itchat.content import TEXT, MAP, CARD, NOTE, SHARING, SYSTEM, FRIENDS
-from tuling123 import robot
-from util import log_it, pp, is_group_msg
 
-MYSELF = None
+import itchat
+from wxlog import log_it, is_group_msg
+from itchat.content import TEXT, SYSTEM, FRIENDS
+from robot.tuling123 import turing
+from robot.wbscms import wbs_robot
+
+
+def robot(query, *args, **kwargs):
+    return turing(query, **kwargs)
+
+online = True
 
 UIN = {}
-MP, CHATROOM, MEMBER = [], [], []
-ALL = []
-online = True
+MYSELF = None
+MP, CHATROOM, MEMBER, ALL = [], [], [], []
 
 
 @itchat.msg_register(TEXT, isGroupChat=True, isFriendChat=True)
@@ -44,7 +49,7 @@ def replay_me(msg):
 
 
 @itchat.msg_register(SYSTEM)
-def get_uin(msg):
+def update_uin(msg):
     if msg['SystemInfo'] != 'uins': return
 
     update_list()
@@ -55,6 +60,7 @@ def get_uin(msg):
         # update global var
         UIN[username] = uin
         print(('%s: %s' % (nickname, uin)).encode(sys.stdin.encoding, 'replace'))
+    print('** Uin Updated **')
 
 
 def update_list(ins=itchat.instanceList[0]):
@@ -62,7 +68,7 @@ def update_list(ins=itchat.instanceList[0]):
 
     MEMBER, CHATROOM, MP = ins.memberList, ins.chatroomList, ins.mpList
     ALL = MEMBER + CHATROOM + MP
-    print('** Uin Updated **')
+    print('** List Updated **')
 
 
 def is_admin(msg):
@@ -71,5 +77,14 @@ def is_admin(msg):
         MYSELF = itchat.search_friends()
     return msg['FromUserName'] == MYSELF['UserName']
 
-itchat.auto_login(hotReload=True)
-itchat.run()
+
+def run(hot_reload=True, use_thread=False):
+    itchat.auto_login(hotReload=hot_reload)
+    if use_thread:
+        import thread
+        thread.start_new_thread(itchat.run, ())
+    else:
+        itchat.run()
+
+if __name__ == '__main__':
+    run()

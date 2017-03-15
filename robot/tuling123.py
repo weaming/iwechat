@@ -7,7 +7,7 @@ import requests as rq
 token_key = 'e8151bef6a9f9deaf641a7c71b5cb0bc'
 
 
-def robot(info=u'你好', userid='123', raw=False, filter_func=None):
+def turing(info=u'你好', userid='123', raw=False, filter_func=None):
     rt = rq.get('http://www.tuling123.com/openapi/api?key=' + token_key + '&info=' + info + '&userid=' + userid)
     rt_text = rt.text.replace('<br>', r'\n')
     res = json.loads(rt_text)
@@ -42,7 +42,7 @@ def robot(info=u'你好', userid='123', raw=False, filter_func=None):
 
     else:
         print(res)
-        text = 'error on server'
+        text = res['text']
 
     text = text.rstrip()
     if filter_func and callable(filter_func):

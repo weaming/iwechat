@@ -1,8 +1,10 @@
 # coding: utf-8
 
 import sys
-import itchat
+import functools
 from pprint import pprint as pp
+
+import itchat
 
 """
 TEXT       = 'Text'
@@ -21,6 +23,7 @@ SYSTEM     = 'System'
 
 def block(v='*', n=40):
     def decorator(func):
+        @functools.wraps(func)
         def wrapper(*args, **kwargs):
             print(v * n)
             result = func(*args, **kwargs)
@@ -80,6 +83,7 @@ def log(msg, rv=None):
 
 
 def log_it(func):
+    @functools.wraps(func)
     def wrapper(msg, **kwargs):
         result = func(msg, **kwargs)
         log(msg, result)

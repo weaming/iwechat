@@ -1,3 +1,5 @@
 *.py[cd]
 *.pkl
 .idea/
+*.txt
+
