@@ -2,4 +2,6 @@
 *.pkl
 .idea/
 *.txt
+*.png
+*.jpg
 
