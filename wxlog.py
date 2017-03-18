@@ -5,8 +5,6 @@ import functools
 from pprint import pprint as pp
 from util import *
 
-import itchat
-
 """
 TEXT       = 'Text'
 MAP        = 'Map'
@@ -42,11 +40,7 @@ def log(msg, rv=None):
     msgs = []
 
     text = msg['Text']
-    from_user_name = msg['FromUserName']
-    to_user_name = msg['ToUserName']
-
     is_group = is_group_msg(msg)
-
     user_text = ''
 
     # User
@@ -69,7 +63,7 @@ def log(msg, rv=None):
     msgs.append(tmp)
 
     # TO
-    msgs.append(u'To: %s [%s]' % (get_self_name(msg), to_user_name))
+    msgs.append(u'To: %s' % get_self_name(msg))
 
     # detail
     msgs.append(u'[*] %s' % text)

@@ -13,7 +13,6 @@ from wxlog import log_it, is_group_msg
 from itchat.content import TEXT, SYSTEM, FRIENDS
 from itchat.content import NOTE, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO
 from robot.tuling123 import turing
-from robot.wbscms import wbs_robot
 from util import *
 
 
@@ -31,7 +30,6 @@ MP, CHATROOM, MEMBER, ALL = [], [], [], []
 msg_dict = {}
 
 
-# @itchat.msg_register(TEXT, isGroupChat=True, isFriendChat=True)
 @log_it
 def chat_bot(msg):
     """ 群聊，好友聊天 """
@@ -44,18 +42,19 @@ def chat_bot(msg):
             return robot(rcv, userid=msg['FromUserName'])
 
 
-@itchat.msg_register(TEXT)
 @log_it
 def replay_me(msg):
     """ 自己给自己发送消息 """
+    if msg['Type'] != TEXT: return
+
     global online
     rcv = msg['Text']
 
     if is_admin(msg):
-        if rcv in (u'关闭', u'下线', u'close', u'shutdown'):
+        if online and rcv in (u'关闭', u'下线', u'close', u'shutdown'):
             online = False
             return str(online)
-        elif rcv in (u'开启', u'上线', u'online'):
+        elif not online and rcv in (u'开启', u'上线', u'online'):
             online = True
             return str(online)
 
@@ -78,7 +77,7 @@ def update_uin(msg):
     print('** Uin Updated **')
 
 
-def ClearTimeOutMsg():
+def clear_timeout_msg():
     """
     ClearTimeOutMsg用于清理消息字典，把超时消息清理掉
     为减少资源占用，此函数只在有新消息动态时调用
@@ -97,8 +96,6 @@ def ClearTimeOutMsg():
                     os.remove(item['msg_content'])
 
 
-@itchat.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS],
-                     isGroupChat=True, isFriendChat=True)
 def save_history(msg):
     """
     将接收到的消息存放在字典中，当接收到新消息时对字典中超时的消息进行清理
@@ -156,9 +153,14 @@ def save_history(msg):
         "msg_content": msg_content, "msg_url": msg_url
     }
     # 清理字典
-    ClearTimeOutMsg()
+    clear_timeout_msg()
 
-    chat_bot(msg)
+
+@itchat.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS],
+                     isGroupChat=True, isFriendChat=True)
+def handle_msg(msg):
+    save_history(msg)
+    return replay_me(msg) or chat_bot(msg)
 
 
 @itchat.msg_register(NOTE, isGroupChat=True, isFriendChat=True)
@@ -177,9 +179,9 @@ def when_revoke(msg):
         old_msg_id = re.search(r"<msgid>(.*?)</msgid>", _content).group(1)
         old_msg = msg_dict.get(old_msg_id, {})
         # print(old_msg_id, old_msg)
-        msg_send = u"您的好友：{msg_from} 在 [{time_now_str}]，撤回了一条 [{msg_type}] 消息，内容如下：{msg_content}" \
-            .format(msg_from=old_msg.get('msg_from', None), time_now_str=old_msg.get('msg_now_str', None),
-                    msg_type=old_msg['msg_type'], msg_content=old_msg.get('msg_content', None))
+        msg_send = u"您的好友：{msg_from} 在 [{msg_time_str}]，撤回了一条 [{msg_type}] 消息，内容如下：{msg_content}" \
+            .format(msg_from=old_msg.get('msg_from', None), msg_time_str=old_msg.get('msg_time_str'),
+                    msg_type=old_msg['msg_type'], msg_content=old_msg.get('msg_content'))
 
         old_msg_type = old_msg['msg_type']
         if old_msg_type == SHARING and old_msg.get('msg_url', None):
@@ -197,7 +199,7 @@ def when_revoke(msg):
         itchat.send(msg_send, toUserName='filehelper')  # 将撤回消息的通知以及细节发送到文件助手
 
         msg_dict.pop(old_msg_id)
-        ClearTimeOutMsg()
+        clear_timeout_msg()
 
 
 def update_list(ins=itchat.instanceList[0]):
@@ -216,14 +218,6 @@ def is_admin(msg):
     return msg['FromUserName'] == MYSELF['UserName'] and msg['FromUserName'] == msg['ToUserName']
 
 
-def run(hot_reload=True, use_thread=False):
-    itchat.auto_login(hotReload=hot_reload)
-    if use_thread:
-        import thread
-        thread.start_new_thread(itchat.run, ())
-    else:
-        itchat.run()
-
-
 if __name__ == '__main__':
-    run()
+    itchat.auto_login(hotReload=True)
+    itchat.run()
