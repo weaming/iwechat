@@ -9,9 +9,10 @@ from datetime import datetime as dt
 from pprint import pprint as pp
 
 import itchat
-from wxlog import log_it, is_group_msg
 from itchat.content import TEXT, SYSTEM, FRIENDS
 from itchat.content import NOTE, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO
+from itchat.utils import search_dict_list
+from wxlog import log_it
 from robot.tuling123 import turing
 from util import *
 
@@ -38,7 +39,10 @@ def chat_bot(msg):
     global online
     rcv = msg['Text']
     if online:
-        if is_group_msg(msg) and msg['isAt'] or msg['Type'] == FRIENDS:
+        if is_group_msg(msg) and not is_from_myself(msg):
+            if msg['isAt'] or u'逗比群' in get_group_info(msg):
+                return robot(rcv, userid=msg['FromUserName']+msg['ActualUserName'])
+        elif msg['Type'] == FRIENDS:
             return robot(rcv, userid=msg['FromUserName'])
 
 
@@ -50,7 +54,7 @@ def replay_me(msg):
     global online
     rcv = msg['Text']
 
-    if is_admin(msg):
+    if is_from_myself(msg) and msg['FromUserName'] == msg['ToUserName']:
         if online and rcv in (u'关闭', u'下线', u'close', u'shutdown'):
             online = False
             return str(online)
@@ -67,7 +71,7 @@ def update_uin(msg):
 
     update_list()
     for username in msg['Text']:
-        member = itchat.utils.search_dict_list(ALL, 'UserName', username)
+        member = search_dict_list(ALL, 'UserName', username)
         nickname = member.get('NickName', '')
         uin = member['Uin']
         # update global var
@@ -210,12 +214,12 @@ def update_list(ins=itchat.instanceList[0]):
     print('** List Updated **')
 
 
-def is_admin(msg):
+def is_from_myself(msg):
     global MYSELF
     if MYSELF is None:
         MYSELF = itchat.search_friends()
 
-    return msg['FromUserName'] == MYSELF['UserName'] and msg['FromUserName'] == msg['ToUserName']
+    return msg['FromUserName'] == MYSELF['UserName']
 
 
 if __name__ == '__main__':
