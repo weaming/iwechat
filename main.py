@@ -7,6 +7,7 @@ from wxlog import log_it, is_group_msg
 from itchat.content import TEXT, SYSTEM, FRIENDS
 from robot.tuling123 import turing
 from robot.wbscms import wbs_robot
+from pprint import pprint as pp
 
 
 def robot(query, *args, **kwargs):
@@ -37,7 +38,7 @@ def replay_me(msg):
     global online
     rcv = msg['Text']
 
-    if is_admin(msg):
+    if is_admin(msg) and msg['FromUserName'] == msg['ToUserName']:
         if rcv in (u'关闭', u'下线', u'close', u'shutdown'):
             online = False
             return str(online)
@@ -45,7 +46,7 @@ def replay_me(msg):
             online = True
             return str(online)
 
-    return robot(rcv, userid=msg['FromUserName'])
+        return robot(rcv, userid=msg['FromUserName'])
 
 
 @itchat.msg_register(SYSTEM)
