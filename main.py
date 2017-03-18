@@ -95,7 +95,7 @@ def ClearTimeOutMsg():
                     print("要删除的文件：", item['msg_content'])
                     os.remove(item['msg_content'])
 
-@itchat.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS], isGroupChat=True)
+@itchat.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS], isGroupChat=True, isFriendChat=True)
 def save_history(msg):
     """
     将接收到的消息存放在字典中，当接收到新消息时对字典中超时的消息进行清理
