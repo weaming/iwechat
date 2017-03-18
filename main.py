@@ -181,7 +181,7 @@ def when_revoke(msg):
         )
 
         old_msg_type = old_msg['msg_type']
-        if old_msg_type == SHARING:
+        if old_msg_type == SHARING and old_msg.get('msg_url', None):
             msg_send += u", 链接: " + old_msg.get('msg_url', None)
         elif old_msg_type in (PICTURE, VIDEO, ATTACHMENT):
             msg_send += u", 存储在%s文件夹中" % save_dir
