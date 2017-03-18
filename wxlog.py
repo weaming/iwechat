@@ -3,6 +3,7 @@
 import sys
 import functools
 from pprint import pprint as pp
+from util import *
 
 import itchat
 
@@ -44,9 +45,8 @@ def log(msg, rv=None):
     from_user_name = msg['FromUserName']
     to_user_name = msg['ToUserName']
 
-    is_group = is_group_msg(from_user_name)
+    is_group = is_group_msg(msg)
 
-    my_display_name = itchat.search_friends()['NickName']
     user_text = ''
 
     # User
@@ -57,22 +57,19 @@ def log(msg, rv=None):
     # From
     if is_group:
         # 群消息
-        group, _ = get_group(userName=from_user_name)
-        group_name = group['NickName']
-        uin = group['Uin']
-        my_display_name = group['self']['DisplayName'] or my_display_name
+        group_name = get_group_info(msg)
+        uin = get_group_info(msg, info='uin')
 
         tmp = u'From: %s [%s]' % (group_name, uin)
     else:
-        user = itchat.search_friends(userName=from_user_name)
-        user_name = user['NickName']
-        remark_name = user['RemarkName']
-        uin = user['Uin']
+        user_name = get_user_info(msg)
+        remark_name = get_user_info(msg, info='remarkname')
+        uin = get_user_info(msg, info='uin')
         tmp = u'From: %s [%s]' % (remark_name or user_name, uin)
     msgs.append(tmp)
 
     # TO
-    msgs.append(u'To: %s [%s]' % (my_display_name, to_user_name))
+    msgs.append(u'To: %s [%s]' % (get_self_name(msg), to_user_name))
 
     # detail
     msgs.append(u'[*] %s' % text)
@@ -91,21 +88,3 @@ def log_it(func):
 
     return wrapper
 
-
-def get_group(*args, **kwargs):
-    group = itchat.search_chatrooms(*args, **kwargs)
-    member_list = group['MemberList']
-    del group['MemberList']
-    return group, member_list
-
-
-def is_group_msg(from_user_name):
-    if type(from_user_name) is dict:
-        from_user_name = from_user_name['FromUserName']
-    return from_user_name.startswith('@@')
-
-
-def is_friends_msg(from_user_name):
-    if type(from_user_name) is dict:
-        from_user_name = from_user_name['FromUserName']
-    return from_user_name[0] == '@' and from_user_name[1] != '@'

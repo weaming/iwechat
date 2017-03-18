@@ -5,6 +5,8 @@ import os
 import time
 import shutil
 import re
+from datetime import datetime as dt
+from pprint import pprint as pp
 
 import itchat
 from wxlog import log_it, is_group_msg
@@ -12,7 +14,7 @@ from itchat.content import TEXT, SYSTEM, FRIENDS
 from itchat.content import NOTE, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO
 from robot.tuling123 import turing
 from robot.wbscms import wbs_robot
-from pprint import pprint as pp
+from util import *
 
 
 def robot(query, *args, **kwargs):
@@ -28,10 +30,12 @@ MP, CHATROOM, MEMBER, ALL = [], [], [], []
 msg_dict = {}
 
 
-@itchat.msg_register(TEXT, isGroupChat=True, isFriendChat=True)
+#@itchat.msg_register(TEXT, isGroupChat=True, isFriendChat=True)
 @log_it
 def chat_bot(msg):
     """ 群聊，好友聊天 """
+    if msg['Type'] != TEXT: return
+
     global online
     rcv = msg['Text']
     if online:
@@ -46,7 +50,7 @@ def replay_me(msg):
     global online
     rcv = msg['Text']
 
-    if is_admin(msg) and msg['FromUserName'] == msg['ToUserName']:
+    if is_admin(msg):
         if rcv in (u'关闭', u'下线', u'close', u'shutdown'):
             online = False
             return str(online)
@@ -73,9 +77,11 @@ def update_uin(msg):
     print('** Uin Updated **')
 
 
-#ClearTimeOutMsg用于清理消息字典，把超时消息清理掉
-#为减少资源占用，此函数只在有新消息动态时调用
 def ClearTimeOutMsg():
+    """
+    ClearTimeOutMsg用于清理消息字典，把超时消息清理掉
+    为减少资源占用，此函数只在有新消息动态时调用
+    """
     if len(msg_dict) > 0:
         for msgid in list(msg_dict): #由于字典在遍历过程中不能删除元素，故使用此方法
             if time.time() - msg_dict.get(msgid, None)["msg_time"] > 130.0: #超时两分钟
@@ -89,25 +95,26 @@ def ClearTimeOutMsg():
                     print("要删除的文件：", item['msg_content'])
                     os.remove(item['msg_content'])
 
-#将接收到的消息存放在字典中，当接收到新消息时对字典中超时的消息进行清理
-#没有注册note（通知类）消息，通知类消息一般为：红包 转账 消息撤回提醒等，不具有撤回功能
-@itchat.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS])
-def Revocation(msg):
-    mytime = time.localtime()  # 这儿获取的是本地时间
+@itchat.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS], isGroupChat=True)
+def save_history(msg):
+    """
+    将接收到的消息存放在字典中，当接收到新消息时对字典中超时的消息进行清理
+    没有注册note（通知类）消息，通知类消息一般为：红包 转账 消息撤回提醒等，不具有撤回功能
+    """
+    now = dt.now()
     #获取用于展示给用户看的时间 2017/03/03 13:23:53
-    msg_time_touser = mytime.tm_year.__str__() \
-        + "/" + mytime.tm_mon.__str__() \
-        + "/" + mytime.tm_mday.__str__() \
-        + " " + mytime.tm_hour.__str__() \
-        + ":" + mytime.tm_min.__str__() \
-        + ":" + mytime.tm_sec.__str__()
+    msg_time_touser = now.strftime('%Y-%m-%d %X')
 
     msg_id = msg['MsgId'] #消息ID
     msg_time = msg['CreateTime'] #消息时间
-    msg_from = itchat.search_friends(userName=msg['FromUserName'])['NickName'] #消息发送人昵称
+
+    user_name, group_name = get_from_info(msg)  #消息发送人昵称
+    msg_from = group_name + ' - ' + user_name if group_name else user_name
+
     msg_type = msg['Type'] #消息类型
     msg_content = None #根据消息类型不同，消息内容不同
     msg_url = None #分享类消息有url
+
     #图片 语音 附件 视频，可下载消息将内容下载暂存到当前目录
     if msg_type == 'Text':
         msg_content = msg['Text']
@@ -148,17 +155,22 @@ def Revocation(msg):
     #清理字典
     ClearTimeOutMsg()
 
-#收到note类消息，判断是不是撤回并进行相应操作
-@itchat.msg_register(NOTE)
-def SaveMsg(msg):
-    # print(msg)
+    chat_bot(msg)
+
+@itchat.msg_register(NOTE, isGroupChat=True, isFriendChat=True)
+def when_revoke(msg):
+    """
+    收到note类消息，判断是不是撤回并进行相应操作
+    """
     #创建可下载消息内容的存放文件夹，并将暂存在当前目录的文件移动到该文件中
     save_dir = os.path.expanduser('~/Revocation')
-    if not os.path.exists(save_dir):
+    if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
 
-    if '<revokemsg>' in msg['Content']:
-        old_msg_id = re.search("\<msgid\>(.*?)\<\/msgid\>", msg['Content']).group(1)
+    msg['Content'] = _content = msg['Content'].replace('&lt;', '<').replace('&gt;', '>')
+    #pp(msg)
+    if '<revokemsg>' in _content:
+        old_msg_id = re.search(r"<msgid>(.*?)</msgid>", _content).group(1)
         old_msg = msg_dict.get(old_msg_id, {})
         #print(old_msg_id, old_msg)
         msg_send = u"您的好友：{msg_from} 在 [{time_touser}]，撤回了一条 [{msg_type}] 消息，内容如下：{msg_content}".format(
@@ -200,7 +212,7 @@ def is_admin(msg):
     if MYSELF is None:
         MYSELF = itchat.search_friends()
 
-    return msg['FromUserName'] == MYSELF['UserName']
+    return msg['FromUserName'] == MYSELF['UserName'] and msg['FromUserName'] == msg['ToUserName']
 
 
 def run(hot_reload=True, use_thread=False):

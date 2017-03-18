@@ -4,4 +4,6 @@
 *.txt
 *.png
 *.jpg
+*.gif
+.DS_Store
 
