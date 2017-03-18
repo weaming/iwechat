@@ -7,9 +7,11 @@ def is_group_msg(msg):
     from_user_name = msg['FromUserName']
     return from_user_name.startswith('@@')
 
+
 def is_friends_msg(msg):
     from_user_name = msg['FromUserName']
     return from_user_name[0] == '@' and from_user_name[1] != '@'
+
 
 def get_group(*args, **kwargs):
     """
@@ -20,6 +22,7 @@ def get_group(*args, **kwargs):
     member_list = group['MemberList']
     del group['MemberList']
     return group, member_list
+
 
 def get_group_by_msg(msg, info='group'):
     if is_group_msg(msg):
@@ -43,6 +46,7 @@ def get_group_info(msg, info='nickname'):
         raise Exception('Info type error')
     return None
 
+
 def get_from_info(msg):
     if is_group_msg(msg):
         return msg['ActualNickName'], get_group_info(msg)
@@ -63,10 +67,10 @@ def get_user_info(msg, info='nickname'):
         raise Exception('Info type error')
     return None
 
+
 def get_self_name(msg):
     my_nick_name = itchat.search_friends()['NickName']
     if is_group_msg(msg):
         group = get_group_by_msg(msg)
         return group['self']['DisplayName'] or my_nick_name
     return my_nick_name
-

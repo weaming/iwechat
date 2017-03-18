@@ -20,17 +20,18 @@ from util import *
 def robot(query, *args, **kwargs):
     return turing(query, **kwargs)
 
+
 online = True
 
 UIN = {}
 MYSELF = None
 MP, CHATROOM, MEMBER, ALL = [], [], [], []
 
-# {msg_id:(msg_from,msg_to,msg_time,msg_time_touser,msg_type,msg_content,msg_url)}
+# {msg_id:(msg_from,msg_to,msg_time,msg_now_str,msg_type,msg_content,msg_url)}
 msg_dict = {}
 
 
-#@itchat.msg_register(TEXT, isGroupChat=True, isFriendChat=True)
+# @itchat.msg_register(TEXT, isGroupChat=True, isFriendChat=True)
 @log_it
 def chat_bot(msg):
     """ 群聊，好友聊天 """
@@ -83,11 +84,11 @@ def ClearTimeOutMsg():
     为减少资源占用，此函数只在有新消息动态时调用
     """
     if len(msg_dict) > 0:
-        for msgid in list(msg_dict): #由于字典在遍历过程中不能删除元素，故使用此方法
-            if time.time() - msg_dict.get(msgid, None)["msg_time"] > 130.0: #超时两分钟
+        for msgid in list(msg_dict):  # 由于字典在遍历过程中不能删除元素，故使用此方法
+            if time.time() - msg_dict.get(msgid, None)["msg_time"] > 130.0:  # 超时两分钟
                 item = msg_dict.pop(msgid)
-                #print("超时的消息：", item['msg_content'])
-                #可下载类消息，并删除相关文件
+                # print("超时的消息：", item['msg_content'])
+                # 可下载类消息，并删除相关文件
                 if item['msg_type'] == "Picture" \
                         or item['msg_type'] == "Recording" \
                         or item['msg_type'] == "Video" \
@@ -95,27 +96,29 @@ def ClearTimeOutMsg():
                     print("要删除的文件：", item['msg_content'])
                     os.remove(item['msg_content'])
 
-@itchat.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS], isGroupChat=True, isFriendChat=True)
+
+@itchat.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS],
+                     isGroupChat=True, isFriendChat=True)
 def save_history(msg):
     """
     将接收到的消息存放在字典中，当接收到新消息时对字典中超时的消息进行清理
     没有注册note（通知类）消息，通知类消息一般为：红包 转账 消息撤回提醒等，不具有撤回功能
     """
     now = dt.now()
-    #获取用于展示给用户看的时间 2017/03/03 13:23:53
-    msg_time_touser = now.strftime('%Y-%m-%d %X')
+    # 获取用于展示给用户看的时间 2017/03/03 13:23:53
+    msg_time_str = now.strftime('%Y-%m-%d %X')
 
-    msg_id = msg['MsgId'] #消息ID
-    msg_time = msg['CreateTime'] #消息时间
+    msg_id = msg['MsgId']  # 消息ID
+    msg_time = msg['CreateTime']  # 消息时间
 
-    user_name, group_name = get_from_info(msg)  #消息发送人昵称
+    user_name, group_name = get_from_info(msg)  # 消息发送人昵称
     msg_from = group_name + ' - ' + user_name if group_name else user_name
 
-    msg_type = msg['Type'] #消息类型
-    msg_content = None #根据消息类型不同，消息内容不同
-    msg_url = None #分享类消息有url
+    msg_type = msg['Type']  # 消息类型
+    msg_content = None  # 根据消息类型不同，消息内容不同
+    msg_url = None  # 分享类消息有url
 
-    #图片 语音 附件 视频，可下载消息将内容下载暂存到当前目录
+    # 图片 语音 附件 视频，可下载消息将内容下载暂存到当前目录
     if msg_type == 'Text':
         msg_content = msg['Text']
     elif msg_type == 'Picture':
@@ -145,44 +148,42 @@ def save_history(msg):
     elif msg['Type'] == 'Friends':
         msg_content = msg['Text']
 
-    #更新字典
-    # {msg_id:(msg_from,msg_time,msg_time_touser,msg_type,msg_content,msg_url)}
-    msg_dict.update({
-        msg_id: {"msg_from": msg_from, "msg_time": msg_time,
-                 "msg_time_touser": msg_time_touser, "msg_type": msg_type,
-                 "msg_content": msg_content, "msg_url": msg_url}
-    })
-    #清理字典
+    # 更新字典
+    # {msg_id:(msg_from,msg_time,msg_time_str,msg_type,msg_content,msg_url)}
+    msg_dict[msg_id] = {
+        "msg_from": msg_from, "msg_time": msg_time,
+        "msg_time_str": msg_time_str, "msg_type": msg_type,
+        "msg_content": msg_content, "msg_url": msg_url
+    }
+    # 清理字典
     ClearTimeOutMsg()
 
     chat_bot(msg)
+
 
 @itchat.msg_register(NOTE, isGroupChat=True, isFriendChat=True)
 def when_revoke(msg):
     """
     收到note类消息，判断是不是撤回并进行相应操作
     """
-    #创建可下载消息内容的存放文件夹，并将暂存在当前目录的文件移动到该文件中
+    # 创建可下载消息内容的存放文件夹，并将暂存在当前目录的文件移动到该文件中
     save_dir = os.path.expanduser('~/Revocation')
     if not os.path.isdir(save_dir):
         os.mkdir(save_dir)
 
     msg['Content'] = _content = msg['Content'].replace('&lt;', '<').replace('&gt;', '>')
-    #pp(msg)
+    # pp(msg)
     if '<revokemsg>' in _content:
         old_msg_id = re.search(r"<msgid>(.*?)</msgid>", _content).group(1)
         old_msg = msg_dict.get(old_msg_id, {})
-        #print(old_msg_id, old_msg)
-        msg_send = u"您的好友：{msg_from} 在 [{time_touser}]，撤回了一条 [{msg_type}] 消息，内容如下：{msg_content}".format(
-            msg_from=old_msg.get('msg_from', None),
-            time_touser=old_msg.get('msg_time_touser', None),
-            msg_type=old_msg['msg_type'],
-            msg_content=old_msg.get('msg_content', None),
-        )
+        # print(old_msg_id, old_msg)
+        msg_send = u"您的好友：{msg_from} 在 [{time_now_str}]，撤回了一条 [{msg_type}] 消息，内容如下：{msg_content}" \
+            .format(msg_from=old_msg.get('msg_from', None), time_now_str=old_msg.get('msg_now_str', None),
+                    msg_type=old_msg['msg_type'], msg_content=old_msg.get('msg_content', None))
 
         old_msg_type = old_msg['msg_type']
         if old_msg_type == SHARING and old_msg.get('msg_url', None):
-            msg_send += u", 链接: " + old_msg.get('msg_url', None)
+            msg_send += u", 链接: " + old_msg['msg_url']
         elif old_msg_type in (PICTURE, VIDEO, ATTACHMENT):
             msg_send += u", 存储在%s文件夹中" % save_dir
             _content = old_msg['msg_content']
@@ -193,7 +194,7 @@ def when_revoke(msg):
             else:
                 itchat.send_file(os.path.join(save_dir, _content), toUserName='filehelper')
 
-        itchat.send(msg_send, toUserName='filehelper') #将撤回消息的通知以及细节发送到文件助手
+        itchat.send(msg_send, toUserName='filehelper')  # 将撤回消息的通知以及细节发送到文件助手
 
         msg_dict.pop(old_msg_id)
         ClearTimeOutMsg()
@@ -222,6 +223,7 @@ def run(hot_reload=True, use_thread=False):
         thread.start_new_thread(itchat.run, ())
     else:
         itchat.run()
+
 
 if __name__ == '__main__':
     run()
