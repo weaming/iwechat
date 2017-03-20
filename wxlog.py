@@ -73,12 +73,18 @@ def log(msg, rv=None):
     print('\n'.join(msgs).encode(sys.stdin.encoding, 'replace'))
 
 
-def log_it(func):
-    @functools.wraps(func)
-    def wrapper(msg, **kwargs):
-        result = func(msg, **kwargs)
-        log(msg, result)
-        return result
+def log_it(must_reply=False):
+    def wrapper(func):
+        @functools.wraps(func)
+        def decorator(msg, **kwargs):
+            result = func(msg, **kwargs)
+            if must_reply:
+                result and log(msg, result)
+            else:
+                log(msg, result)
+            return result
+
+        return decorator
 
     return wrapper
 

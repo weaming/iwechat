@@ -31,22 +31,23 @@ MP, CHATROOM, MEMBER, ALL = [], [], [], []
 msg_dict = {}
 
 
-@log_it
+@log_it()
 def chat_bot(msg):
     """ 群聊，好友聊天 """
     if msg['Type'] != TEXT: return
 
     global online
     rcv = msg['Text']
-    if online:
-        if is_group_msg(msg) and not is_from_myself(msg):
+    if online and not is_from_myself(msg):
+        if is_group_msg(msg):
             if msg['isAt'] or u'逗比群' in get_group_info(msg):
                 return robot(rcv, userid=msg['FromUserName']+msg['ActualUserName'])
-        elif msg['Type'] == FRIENDS:
+
+        elif is_friends_msg(msg):
             return robot(rcv, userid=msg['FromUserName'])
 
 
-@log_it
+@log_it(must_reply=True)
 def replay_me(msg):
     """ 自己给自己发送消息 """
     if msg['Type'] != TEXT: return
